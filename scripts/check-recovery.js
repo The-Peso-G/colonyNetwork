@@ -55,6 +55,8 @@ walkSync("./contracts/").forEach((contractName) => {
       "contracts/patriciaTree/PatriciaTreeProofs.sol",
       "contracts/reputationMiningCycle/IReputationMiningCycle.sol",
       "contracts/reputationMiningCycle/ReputationMiningCycle.sol",
+      "contracts/reputationMiningCycle/ReputationMiningCycleBinarySearch.sol",
+      "contracts/reputationMiningCycle/ReputationMiningCycleCommon.sol",
       "contracts/reputationMiningCycle/ReputationMiningCycleRespond.sol",
       "contracts/testHelpers/ContractEditing.sol",
       "contracts/testHelpers/NoLimitSubdomains.sol",
