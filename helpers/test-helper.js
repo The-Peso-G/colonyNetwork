@@ -308,12 +308,31 @@ export async function forwardTimeTo(_timestamp, test) {
   await forwardTime(amountToForward.toNumber(), test);
 }
 
-export async function mineBlock() {
+export async function mineBlock(timestamp) {
   return new Promise((resolve, reject) => {
     web3.currentProvider.send(
       {
         jsonrpc: "2.0",
         method: "evm_mine",
+        params: timestamp ? [timestamp] : [],
+        id: new Date().getTime(),
+      },
+      (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      }
+    );
+  });
+}
+
+export async function stopMining() {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send(
+      {
+        jsonrpc: "2.0",
+        method: "miner_stop",
         params: [],
         id: new Date().getTime(),
       },
@@ -325,6 +344,37 @@ export async function mineBlock() {
       }
     );
   });
+}
+
+export async function startMining() {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send(
+      {
+        jsonrpc: "2.0",
+        method: "miner_start",
+        params: [],
+        id: new Date().getTime(),
+      },
+      (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      }
+    );
+  });
+}
+
+export async function makeTxAtTimestamp(f, args, timestamp, test) {
+  const client = await web3GetClient();
+  if (client.indexOf("TestRPC") === -1) {
+    test.skip();
+  }
+  await stopMining();
+  const promise = f(...args);
+  await mineBlock(timestamp);
+  await startMining();
+  return promise;
 }
 
 export function bnSqrt(bn, isGreater) {
@@ -444,7 +494,7 @@ export async function getActiveRepCycle(colonyNetwork) {
 }
 
 export async function advanceMiningCycleNoContest({ colonyNetwork, client, minerAddress, test }) {
-  await forwardTime(MINING_CYCLE_DURATION + SUBMITTER_ONLY_WINDOW, test);
+  await forwardTime(MINING_CYCLE_DURATION + SUBMITTER_ONLY_WINDOW + 1, test);
   const repCycle = await getActiveRepCycle(colonyNetwork);
 
   if (client !== undefined) {
@@ -648,7 +698,13 @@ export async function finishReputationMiningCycle(colonyNetwork, test) {
 
   if (nUniqueSubmittedHashes.gtn(0)) {
     const reputationMiningWindowOpenTimestamp = await repCycle.getReputationMiningWindowOpenTimestamp();
-    await forwardTimeTo(reputationMiningWindowOpenTimestamp.addn(MINING_CYCLE_DURATION).addn(SUBMITTER_ONLY_WINDOW).toNumber(), test);
+    await forwardTimeTo(
+      reputationMiningWindowOpenTimestamp
+        .addn(MINING_CYCLE_DURATION)
+        .addn(SUBMITTER_ONLY_WINDOW + 1)
+        .toNumber(),
+      test
+    );
     const nInvalidatedHashes = await repCycle.getNInvalidatedHashes();
     if (nUniqueSubmittedHashes.sub(nInvalidatedHashes).eqn(1)) {
       await repCycle.confirmNewHash(nUniqueSubmittedHashes.eqn(1) ? 0 : 1); // Not a general solution - only works for one or two submissions.
